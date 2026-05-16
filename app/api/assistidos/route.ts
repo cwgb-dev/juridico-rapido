@@ -10,7 +10,12 @@ export const runtime = "nodejs";
 async function readJsonBody<T>(request: Request) {
   const body = (await request.text()).replace(/^\uFEFF/, "").trim();
   if (!body) throw new Error("Corpo da requisicao vazio.");
-  return JSON.parse(body) as T;
+  try {
+    return JSON.parse(body) as T;
+  } catch {
+    const prefixCodes = Array.from(body.slice(0, 8)).map((char) => char.charCodeAt(0)).join(",");
+    throw new Error(`JSON invalido no corpo da requisicao. Prefixo recebido: ${prefixCodes}`);
+  }
 }
 
 export async function GET() {
