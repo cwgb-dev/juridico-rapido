@@ -21,7 +21,7 @@ export function generateNoCpfId() {
 }
 
 export function displayCpf(value?: string | null) {
-  if (!value || isGeneratedNoCpf(value)) return "não informado";
+  if (!value || isGeneratedNoCpf(value)) return "";
   const digits = onlyDigits(value);
   if (digits.length !== 11) return value;
   return formatCpf(digits);

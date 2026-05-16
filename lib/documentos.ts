@@ -37,7 +37,11 @@ export type AssistidoDocumentoData = {
 export type TipoDocumento = "procuracao" | "hipossuficiencia";
 
 function texto(value?: string | null) {
-  return value?.trim() || "não informado";
+  return value?.trim() || "";
+}
+
+function joinPartes(...values: Array<string | null | undefined>) {
+  return values.map((value) => value?.trim()).filter(Boolean).join(", ");
 }
 
 function hasCpf(value?: string | null) {
@@ -87,35 +91,40 @@ function enderecoSemCep(a: AssistidoDocumentoData) {
 
 export function qualificacaoCompleta(a: AssistidoDocumentoData) {
   const nascimento = formatDate(a.data_nascimento);
+  const endereco = enderecoSemCep(a);
+  const email = texto(a.email);
+  const telefone = texto(a.telefone_whatsapp);
 
   if (a.menor && a.representante_legal_nome) {
+    const representanteEmail = texto(a.representante_legal_email || a.email);
+    const representanteTelefone = texto(a.representante_legal_telefone || a.telefone_whatsapp);
     return [
       `${a.nome_completo.toUpperCase()}, menor impúbere`,
       nascimento ? `nascido(a) em ${nascimento}` : "",
       cpfQualificacao(a.cpf),
-      `neste ato representado(a) por seu(sua) ${texto(a.representante_legal_parentesco || "genitor(a)")} ${a.representante_legal_nome.toUpperCase()}`,
+      `neste ato representado(a) por seu(sua) ${texto(a.representante_legal_parentesco) || "representante legal"} ${a.representante_legal_nome.toUpperCase()}`,
       texto(a.representante_legal_nacionalidade),
       texto(a.representante_legal_estado_civil),
       texto(a.representante_legal_profissao),
-      `portador(a) do RG n° ${texto(a.representante_legal_rg)}`,
+      texto(a.representante_legal_rg) ? `portador(a) do RG n° ${texto(a.representante_legal_rg)}` : "",
       cpfQualificacao(a.representante_legal_cpf),
-      `residente e domiciliado(a) à ${enderecoSemCep(a)}`,
-      `CEP ${texto(a.cep)}`,
-      `endereço eletrônico ${texto(a.representante_legal_email || a.email)}`,
-      `telefone ${texto(a.representante_legal_telefone || a.telefone_whatsapp)}`
+      endereco ? `residente e domiciliado(a) à ${endereco}` : "",
+      texto(a.cep) ? `CEP ${texto(a.cep)}` : "",
+      representanteEmail ? `endereço eletrônico ${representanteEmail}` : "",
+      representanteTelefone ? `telefone ${representanteTelefone}` : ""
     ]
       .filter(Boolean)
       .join(", ");
   }
 
   return [
-    `${a.nome_completo.toUpperCase()}, ${texto(a.nacionalidade)}, ${texto(a.estado_civil)}, ${texto(a.profissao)}`,
-    `portador(a) do RG n° ${texto(a.rg)}`,
+    joinPartes(a.nome_completo.toUpperCase(), texto(a.nacionalidade), texto(a.estado_civil), texto(a.profissao)),
+    texto(a.rg) ? `portador(a) do RG n° ${texto(a.rg)}` : "",
     cpfQualificacao(a.cpf),
     nascimento ? `nascido(a) em ${nascimento}` : "",
-    `residente e domiciliado(a) à ${texto(a.endereco_completo)}`,
-    `endereço eletrônico ${texto(a.email)}`,
-    `telefone ${texto(a.telefone_whatsapp)}`
+    endereco ? `residente e domiciliado(a) à ${endereco}` : "",
+    email ? `endereço eletrônico ${email}` : "",
+    telefone ? `telefone ${telefone}` : ""
   ]
     .filter(Boolean)
     .join(", ");
@@ -154,14 +163,22 @@ ${assinatura}`;
 
 export function criarTextoHipossuficiencia(a: AssistidoDocumentoData) {
   if (a.menor && a.representante_legal_nome) {
+    const endereco = enderecoSemCep(a);
+    const representanteEmail = texto(a.representante_legal_email || a.email);
+    const representanteTelefone = texto(a.representante_legal_telefone || a.telefone_whatsapp);
     const representanteQualificacao = [
-      `${a.representante_legal_nome.toUpperCase()}, ${texto(a.representante_legal_nacionalidade)}, ${texto(a.representante_legal_estado_civil)}, ${texto(a.representante_legal_profissao)}`,
-      `portador(a) do RG n° ${texto(a.representante_legal_rg)}`,
+      joinPartes(
+        a.representante_legal_nome.toUpperCase(),
+        texto(a.representante_legal_nacionalidade),
+        texto(a.representante_legal_estado_civil),
+        texto(a.representante_legal_profissao)
+      ),
+      texto(a.representante_legal_rg) ? `portador(a) do RG n° ${texto(a.representante_legal_rg)}` : "",
       cpfQualificacao(a.representante_legal_cpf),
-      `residente e domiciliado(a) à ${enderecoSemCep(a)}`,
-      `CEP ${texto(a.cep)}`,
-      `endereço eletrônico ${texto(a.representante_legal_email || a.email)}`,
-      `telefone ${texto(a.representante_legal_telefone || a.telefone_whatsapp)}`
+      endereco ? `residente e domiciliado(a) à ${endereco}` : "",
+      texto(a.cep) ? `CEP ${texto(a.cep)}` : "",
+      representanteEmail ? `endereço eletrônico ${representanteEmail}` : "",
+      representanteTelefone ? `telefone ${representanteTelefone}` : ""
     ]
       .filter(Boolean)
       .join(", ");
@@ -176,7 +193,7 @@ export function criarTextoHipossuficiencia(a: AssistidoDocumentoData) {
 
     return `DECLARAÇÃO DE HIPOSSUFICIÊNCIA
 
-Eu, ${representanteQualificacao}, na qualidade de ${texto(a.representante_legal_parentesco || "representante legal")} de ${menorQualificacao}, DECLARO, para os devidos fins de direito, sob as penas da lei, que o(a) menor representado(a) não possui condições de arcar com as custas processuais, despesas e honorários advocatícios sem prejuízo de seu sustento e de sua família, razão pela qual faz jus aos benefícios da gratuidade da justiça, nos termos do art. 98 do Código de Processo Civil, sendo presumidamente verdadeira a presente declaração, conforme dispõe o art. 99, §3°, do mesmo diploma legal, bem como em conformidade com o art. 5°, inciso LXXIV, da Constituição Federal.
+Eu, ${representanteQualificacao}, na qualidade de ${texto(a.representante_legal_parentesco) || "representante legal"} de ${menorQualificacao}, DECLARO, para os devidos fins de direito, sob as penas da lei, que o(a) menor representado(a) não possui condições de arcar com as custas processuais, despesas e honorários advocatícios sem prejuízo de seu sustento e de sua família, razão pela qual faz jus aos benefícios da gratuidade da justiça, nos termos do art. 98 do Código de Processo Civil, sendo presumidamente verdadeira a presente declaração, conforme dispõe o art. 99, §3°, do mesmo diploma legal, bem como em conformidade com o art. 5°, inciso LXXIV, da Constituição Federal.
 
 Declaro, ainda, que as informações acima prestadas são verdadeiras, estando ciente de que a falsidade da presente declaração poderá ensejar responsabilização civil, administrativa e penal, nos termos da legislação aplicável.
 
@@ -219,10 +236,28 @@ export function criarTextoDadosGerais(a: AssistidoDocumentoData & {
   indicacao?: string | null;
   observacoes?: string | null;
 }) {
-  const nascimento = formatDate(a.data_nascimento) || "não informado";
+  const nascimento = formatDate(a.data_nascimento);
+  const identificacao = [
+    joinPartes(a.nome_completo.toUpperCase(), texto(a.nacionalidade), texto(a.estado_civil), texto(a.profissao)),
+    texto(a.rg) ? `portador(a) do RG n° ${texto(a.rg)}` : "",
+    hasCpf(a.cpf) ? `inscrito(a) no CPF sob o n° ${displayCpf(a.cpf)}` : "",
+    nascimento ? `nascido(a) em ${nascimento}` : "",
+    texto(a.endereco_completo) ? `residente e domiciliado(a) à ${texto(a.endereco_completo)}` : "",
+    texto(a.email) ? `endereço eletrônico ${texto(a.email)}` : "",
+    texto(a.telefone_whatsapp) ? `telefone ${texto(a.telefone_whatsapp)}` : ""
+  ].filter(Boolean).join(", ");
+  const endereco = [
+    texto(a.logradouro) ? `Rua ${texto(a.logradouro)}` : "",
+    texto(a.numero) ? `n° ${texto(a.numero)}` : "",
+    texto(a.complemento) ? `complemento ${texto(a.complemento)}` : "",
+    texto(a.bairro) ? `bairro ${texto(a.bairro)}` : "",
+    texto(a.municipio) ? `município ${texto(a.municipio)}` : "",
+    texto(a.estado) ? `estado ${texto(a.estado)}` : "",
+    texto(a.cep) ? `CEP ${texto(a.cep)}` : ""
+  ].filter(Boolean).join(", ");
   return `DADOS GERAIS
-IDENTIFICAÇÃO: ${a.nome_completo.toUpperCase()}, ${texto(a.nacionalidade)}, ${texto(a.estado_civil)}, ${texto(a.profissao)}, portador(a) do RG n° ${texto(a.rg)}, inscrito(a) no CPF sob o n° ${displayCpf(a.cpf)}, nascido(a) em ${nascimento}, residente e domiciliado(a) à ${texto(a.endereco_completo)}, endereço eletrônico ${texto(a.email)}, telefone ${texto(a.telefone_whatsapp)}.
-ENDEREÇO: Rua ${texto(a.logradouro)}, n° ${texto(a.numero)}, complemento ${texto(a.complemento)}, bairro ${texto(a.bairro)}, município ${texto(a.municipio)}, estado ${texto(a.estado)}, CEP ${texto(a.cep)}.
+IDENTIFICAÇÃO: ${identificacao}.
+ENDEREÇO: ${endereco}.
 ATENDIMENTO DO DIA: O presente relatório reúne os dados gerais coletados no cadastro inicial do assistido, para fins de organização interna do atendimento jurídico, triagem documental e posterior vinculação às demandas apresentadas.
 INDICAÇÃO: ${texto(a.indicacao)}.
 OBSERVAÇÕES: ${texto(a.observacoes)}.
