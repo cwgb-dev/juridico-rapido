@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
-import { ExternalLink, FileText, FolderOpen, Loader2, MessageCircle, Pencil, Plus, Save, Search, Trash2 } from "lucide-react";
+import { BarChart3, Download, ExternalLink, FileText, FolderOpen, Loader2, MessageCircle, Pencil, Plus, Save, Search, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -74,6 +74,23 @@ type UsuarioAutorizado = {
   drive_permission_id?: string | null;
 };
 
+type RelatorioData = {
+  resumo: {
+    assistidos: number;
+    atendimentos: number;
+    menores: number;
+    comCpf: number;
+    semCpf: number;
+    cadastrosNoMes: number;
+    atendimentosNoMes: number;
+  };
+  indicacoes: Array<{ label: string; total: number }>;
+  cadastrosPorMes: Array<{ label: string; total: number }>;
+  atendimentosPorMes: Array<{ label: string; total: number }>;
+  ultimosAtendimentos: Array<{ id: number; data: string; assistido: string; numero_processo: string; relato: string }>;
+  assistidosRecentes: Array<{ cpf: string; nome: string; data: string; menor: boolean; indicacao: string; atendimentos: number }>;
+};
+
 const initialForm: FormState = {
   nome_completo: "",
   nacionalidade: "brasileiro(a)",
@@ -132,7 +149,7 @@ async function readJsonResponse(response: Response) {
 }
 
 export function CadastroAssistidoForm() {
-  const [tab, setTab] = useState<"assistidos" | "cliente" | "cadastro" | "demanda" | "acessos">("assistidos");
+  const [tab, setTab] = useState<"assistidos" | "cliente" | "cadastro" | "demanda" | "acessos" | "relatorios">("assistidos");
   const [assistidos, setAssistidos] = useState<Assistido[]>([]);
   const [usuarios, setUsuarios] = useState<UsuarioAutorizado[]>([]);
   const [selected, setSelected] = useState<Assistido | null>(null);
@@ -154,6 +171,10 @@ export function CadastroAssistidoForm() {
   const [accessNome, setAccessNome] = useState("");
   const [accessRole, setAccessRole] = useState("user");
   const [accessLoading, setAccessLoading] = useState(false);
+  const [relatorio, setRelatorio] = useState<RelatorioData | null>(null);
+  const [relatorioLoading, setRelatorioLoading] = useState(false);
+  const [relatorioFrom, setRelatorioFrom] = useState("");
+  const [relatorioTo, setRelatorioTo] = useState("");
 
   useEffect(() => {
     loadAssistidos();
@@ -183,6 +204,32 @@ export function CadastroAssistidoForm() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao carregar acessos.");
     }
+  }
+
+  async function loadRelatorio() {
+    setRelatorioLoading(true);
+    resetFeedback();
+
+    try {
+      const params = new URLSearchParams();
+      if (relatorioFrom) params.set("from", relatorioFrom);
+      if (relatorioTo) params.set("to", relatorioTo);
+      const response = await fetch(`/api/relatorios${params.toString() ? `?${params}` : ""}`);
+      const data = await readJsonResponse(response);
+      if (!response.ok) throw new Error(data.error || "Nao foi possivel carregar os relatorios.");
+      setRelatorio(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao carregar relatorios.");
+    } finally {
+      setRelatorioLoading(false);
+    }
+  }
+
+  function exportRelatorio(type: "assistidos" | "atendimentos") {
+    const params = new URLSearchParams({ export: type });
+    if (relatorioFrom) params.set("from", relatorioFrom);
+    if (relatorioTo) params.set("to", relatorioTo);
+    window.open(`/api/relatorios?${params}`, "_blank");
   }
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
@@ -505,6 +552,13 @@ export function CadastroAssistidoForm() {
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="text-lg font-semibold">Assistidos</h2>
             <div className="flex flex-col gap-2 sm:flex-row">
+              <Button type="button" variant="outline" onClick={() => {
+                setTab("relatorios");
+                void loadRelatorio();
+              }} className="w-full sm:w-fit">
+                <BarChart3 className="h-4 w-4" />
+                Relatorios
+              </Button>
               <Button type="button" variant="outline" onClick={() => setTab("acessos")} className="w-full sm:w-fit">
                 Acessos
               </Button>
@@ -544,6 +598,89 @@ export function CadastroAssistidoForm() {
             </div>
           ) : (
             <p className="rounded-md border border-border bg-white p-4 text-sm text-muted-foreground">Nenhum assistido cadastrado.</p>
+          )}
+        </div>
+      ) : null}
+
+      {tab === "relatorios" ? (
+        <div className="grid gap-5">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <h2 className="text-lg font-semibold">Relatorios</h2>
+            <Button type="button" variant="outline" onClick={() => setTab("assistidos")} className="w-full sm:w-fit">
+              Voltar
+            </Button>
+          </div>
+
+          <Status error={error} message={message} />
+
+          <div className="grid gap-3 rounded-md border border-border bg-white p-3 sm:grid-cols-[1fr_1fr_auto_auto_auto] sm:items-end">
+            <Field label="Inicio" htmlFor="relatorio_from">
+              <Input id="relatorio_from" type="date" value={relatorioFrom} onChange={(event) => setRelatorioFrom(event.target.value)} />
+            </Field>
+            <Field label="Fim" htmlFor="relatorio_to">
+              <Input id="relatorio_to" type="date" value={relatorioTo} onChange={(event) => setRelatorioTo(event.target.value)} />
+            </Field>
+            <Button type="button" onClick={loadRelatorio} disabled={relatorioLoading}>
+              {relatorioLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <BarChart3 className="h-4 w-4" />}
+              Atualizar
+            </Button>
+            <Button type="button" variant="outline" onClick={() => exportRelatorio("assistidos")}>
+              <Download className="h-4 w-4" />
+              Assistidos CSV
+            </Button>
+            <Button type="button" variant="outline" onClick={() => exportRelatorio("atendimentos")}>
+              <Download className="h-4 w-4" />
+              Demandas CSV
+            </Button>
+          </div>
+
+          {relatorioLoading ? (
+            <p className="text-sm text-muted-foreground">Carregando relatorios...</p>
+          ) : relatorio ? (
+            <div className="grid gap-5">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <Metric label="Assistidos" value={relatorio.resumo.assistidos} />
+                <Metric label="Demandas" value={relatorio.resumo.atendimentos} />
+                <Metric label="Menores" value={relatorio.resumo.menores} />
+                <Metric label="Sem CPF" value={relatorio.resumo.semCpf} />
+                <Metric label="Com CPF" value={relatorio.resumo.comCpf} />
+                <Metric label="Cadastros no mes" value={relatorio.resumo.cadastrosNoMes} />
+                <Metric label="Demandas no mes" value={relatorio.resumo.atendimentosNoMes} />
+              </div>
+
+              <div className="grid gap-4 lg:grid-cols-3">
+                <ReportList title="Indicacoes" items={relatorio.indicacoes.slice(0, 8)} />
+                <ReportList title="Cadastros por mes" items={relatorio.cadastrosPorMes.slice(0, 8)} />
+                <ReportList title="Demandas por mes" items={relatorio.atendimentosPorMes.slice(0, 8)} />
+              </div>
+
+              <div className="grid gap-4 lg:grid-cols-2">
+                <div className="grid gap-2">
+                  <h3 className="text-base font-semibold">Ultimas demandas</h3>
+                  {relatorio.ultimosAtendimentos.length ? relatorio.ultimosAtendimentos.map((atendimento) => (
+                    <div key={atendimento.id} className="grid gap-1 rounded-md border border-border bg-white p-3">
+                      <p className="font-medium">{atendimento.assistido}</p>
+                      <p className="text-sm text-muted-foreground">{[atendimento.data, atendimento.numero_processo].filter(Boolean).join(" · ")}</p>
+                      <p className="text-sm text-muted-foreground">{atendimento.relato}</p>
+                    </div>
+                  )) : <p className="rounded-md border border-border bg-white p-3 text-sm text-muted-foreground">Nenhuma demanda no periodo.</p>}
+                </div>
+
+                <div className="grid gap-2">
+                  <h3 className="text-base font-semibold">Cadastros recentes</h3>
+                  {relatorio.assistidosRecentes.length ? relatorio.assistidosRecentes.map((assistido) => (
+                    <div key={assistido.cpf} className="grid gap-1 rounded-md border border-border bg-white p-3">
+                      <p className="font-medium">{assistido.nome}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {[assistido.data, assistido.menor ? "Menor" : "Maior", assistido.indicacao, `${assistido.atendimentos} demanda(s)`].filter(Boolean).join(" · ")}
+                      </p>
+                    </div>
+                  )) : <p className="rounded-md border border-border bg-white p-3 text-sm text-muted-foreground">Nenhum cadastro no periodo.</p>}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <p className="rounded-md border border-border bg-white p-4 text-sm text-muted-foreground">Atualize para carregar os indicadores.</p>
           )}
         </div>
       ) : null}
@@ -1002,6 +1139,33 @@ function Status({ error, message }: { error: string; message: string }) {
   if (error) return <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>;
   if (message) return <p className="rounded-md border border-primary/30 bg-primary/10 px-3 py-2 text-sm text-primary">{message}</p>;
   return null;
+}
+
+function Metric({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="grid gap-1 rounded-md border border-border bg-white p-3">
+      <p className="text-sm text-muted-foreground">{label}</p>
+      <p className="text-2xl font-semibold">{value}</p>
+    </div>
+  );
+}
+
+function ReportList({ title, items }: { title: string; items: Array<{ label: string; total: number }> }) {
+  return (
+    <div className="grid gap-2">
+      <h3 className="text-base font-semibold">{title}</h3>
+      <div className="grid gap-2">
+        {items.length ? items.map((item) => (
+          <div key={item.label} className="flex items-center justify-between gap-3 rounded-md border border-border bg-white p-3">
+            <span className="min-w-0 truncate text-sm">{item.label}</span>
+            <span className="text-sm font-semibold">{item.total}</span>
+          </div>
+        )) : (
+          <p className="rounded-md border border-border bg-white p-3 text-sm text-muted-foreground">Sem dados.</p>
+        )}
+      </div>
+    </div>
+  );
 }
 
 function formatApiError(error: unknown, fallback: string) {
