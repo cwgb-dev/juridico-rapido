@@ -12,9 +12,26 @@ async function readJsonBody<T>(request: Request) {
   if (!body) throw new Error("Corpo da requisicao vazio.");
   try {
     return JSON.parse(body) as T;
-  } catch {
+  } catch (error) {
+    const fallback = parseLooseObjectBody(body);
+    if (fallback) return fallback as T;
     const prefixCodes = Array.from(body.slice(0, 8)).map((char) => char.charCodeAt(0)).join(",");
-    throw new Error(`JSON invalido no corpo da requisicao. Prefixo recebido: ${prefixCodes}`);
+    const message = error instanceof Error ? error.message : "JSON invalido.";
+    throw new Error(`${message} Prefixo recebido: ${prefixCodes}`);
+  }
+}
+
+function parseLooseObjectBody(body: string) {
+  if (!body.startsWith("{") || !body.endsWith("}")) return null;
+
+  try {
+    const normalized = body
+      .replace(/([{,])\s*([A-Za-z_][A-Za-z0-9_]*)\s*:/g, '$1"$2":')
+      .replace(/:\s*undefined\s*([,}])/g, ":null$1")
+      .replace(/:\s*'([^']*)'/g, (_, value) => `:${JSON.stringify(value)}`);
+    return JSON.parse(normalized);
+  } catch {
+    return null;
   }
 }
 
