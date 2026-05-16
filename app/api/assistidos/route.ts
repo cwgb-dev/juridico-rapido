@@ -8,12 +8,17 @@ import { generateNoCpfId, isGeneratedNoCpf } from "@/lib/utils";
 export const runtime = "nodejs";
 
 export async function GET() {
-  const assistidos = await prisma.assistido.findMany({
-    orderBy: { created_at: "desc" },
-    include: { atendimentos: { orderBy: { created_at: "desc" } } }
-  });
+  try {
+    const assistidos = await prisma.assistido.findMany({
+      orderBy: { created_at: "desc" },
+      include: { atendimentos: { orderBy: { created_at: "desc" } } }
+    });
 
-  return NextResponse.json(assistidos);
+    return NextResponse.json(assistidos);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Erro ao carregar assistidos.";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 }
 
 export async function POST(request: Request) {

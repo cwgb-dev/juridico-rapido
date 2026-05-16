@@ -116,6 +116,21 @@ const initialDemand: DemandState = {
   observacoes: ""
 };
 
+async function readJsonResponse(response: Response) {
+  const text = await response.text();
+  if (!text) return {};
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return {
+      error: response.ok
+        ? "A resposta do servidor veio em formato inesperado."
+        : `Erro do servidor (${response.status}). Confira as variaveis de ambiente e os logs do deploy.`
+    };
+  }
+}
+
 export function CadastroAssistidoForm() {
   const [tab, setTab] = useState<"assistidos" | "cliente" | "cadastro" | "demanda" | "acessos">("assistidos");
   const [assistidos, setAssistidos] = useState<Assistido[]>([]);
@@ -149,7 +164,7 @@ export function CadastroAssistidoForm() {
     setLoadingList(true);
     try {
       const response = await fetch("/api/assistidos");
-      const data = await response.json();
+      const data = await readJsonResponse(response);
       if (!response.ok) throw new Error(data.error || "Nao foi possivel carregar os assistidos.");
       setAssistidos(data);
     } catch (err) {
@@ -162,7 +177,7 @@ export function CadastroAssistidoForm() {
   async function loadUsuarios() {
     try {
       const response = await fetch("/api/usuarios-autorizados");
-      const data = await response.json();
+      const data = await readJsonResponse(response);
       if (!response.ok) throw new Error(data.error || "Nao foi possivel carregar os acessos.");
       setUsuarios(data);
     } catch (err) {
