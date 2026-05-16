@@ -12,7 +12,8 @@ export function onlyDigits(value: string) {
 const noCpfPrefix = "000000";
 
 export function isGeneratedNoCpf(value?: string | null) {
-  return Boolean(value && /^000000\d{5}$/.test(value));
+  const digits = value ? onlyDigits(value) : "";
+  return Boolean(digits && /^000000\d{5}$/.test(digits) && digits !== "00000000000");
 }
 
 export function generateNoCpfId() {
