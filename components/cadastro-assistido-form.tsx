@@ -322,7 +322,7 @@ export function CadastroAssistidoForm() {
       const data = await response.json();
       if (!response.ok) {
         reportWindow?.close();
-        throw new Error(data.error || "Nao foi possivel salvar.");
+        throw new Error(formatApiError(data.error, "Nao foi possivel salvar."));
       }
 
       setForm(initialForm);
@@ -1002,6 +1002,14 @@ function Status({ error, message }: { error: string; message: string }) {
   if (error) return <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>;
   if (message) return <p className="rounded-md border border-primary/30 bg-primary/10 px-3 py-2 text-sm text-primary">{message}</p>;
   return null;
+}
+
+function formatApiError(error: unknown, fallback: string) {
+  const message = String(error || fallback);
+  if (/Expected property name|JSON at position|Corpo da requisicao invalido/i.test(message)) {
+    return "Nao foi possivel ler os dados enviados. Atualize a pagina com Ctrl+F5 e tente salvar novamente.";
+  }
+  return message;
 }
 
 function Field({ label, htmlFor, wide, children }: { label: string; htmlFor: string; wide?: boolean; children: ReactNode }) {

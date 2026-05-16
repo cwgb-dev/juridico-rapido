@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { createClientFolder, createGoogleDocInFolder, getDocumentosFolderId } from "@/lib/google";
 import { criarTextoDocumento, tituloDocumento, type TipoDocumento } from "@/lib/documentos";
 import { onlyDigits } from "@/lib/utils";
+import { readRequestBody } from "@/lib/request-body";
 
 export const runtime = "nodejs";
 
@@ -21,7 +22,7 @@ function isTipoDocumento(value: string): value is TipoDocumento {
 
 export async function POST(request: Request) {
   try {
-    const payload = (await request.json()) as Payload;
+    const payload = await readRequestBody<Payload>(request);
     const cpf = onlyDigits(payload.cpf || "");
     const tipos = (payload.documentos || []).filter(isTipoDocumento);
 

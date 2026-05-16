@@ -6,6 +6,7 @@ import { onlyDigits } from "@/lib/utils";
 import { normalizeAssistidoInput, type AssistidoInput } from "@/lib/validation";
 import { deleteDriveFolder, getDocumentosFolderId, syncDadosGeraisDoc } from "@/lib/google";
 import { montarDadosGeraisTables } from "@/lib/dados-gerais";
+import { readRequestBody } from "@/lib/request-body";
 
 type Params = {
   params: Promise<{ cpf: string }>;
@@ -43,7 +44,7 @@ export async function GET(_request: Request, { params }: Params) {
 export async function PUT(request: Request, { params }: Params) {
   try {
     const { cpf } = await params;
-    const payload = (await request.json()) as AssistidoInput;
+    const payload = await readRequestBody<AssistidoInput>(request);
     const data = normalizeAssistidoInput({ ...payload, cpf });
 
     const assistido = await prisma.assistido.update({
@@ -87,7 +88,7 @@ export async function DELETE(request: Request, { params }: Params) {
     return NextResponse.json({ error: "Senha de exclusao nao configurada." }, { status: 400 });
   }
 
-  const body = await request.json().catch(() => null);
+  const body = await readRequestBody<{ password?: string }>(request).catch(() => null);
   const providedPassword = String(body?.password || "");
   if (providedPassword !== configuredPassword) {
     return NextResponse.json({ error: "Senha incorreta." }, { status: 403 });

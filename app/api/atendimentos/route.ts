@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { onlyDigits } from "@/lib/utils";
 import { getDocumentosFolderId, syncDadosGeraisDoc } from "@/lib/google";
 import { montarDadosGeraisTables } from "@/lib/dados-gerais";
+import { readRequestBody } from "@/lib/request-body";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -19,7 +20,13 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const payload = await request.json();
+    const payload = await readRequestBody<{
+      cpf_assistido?: string;
+      data_atendimento?: string;
+      numero_processo?: string;
+      relato?: string;
+      observacoes?: string;
+    }>(request);
     const cpf = onlyDigits(payload.cpf_assistido || "");
 
     if (!cpf || !payload.relato?.trim()) {

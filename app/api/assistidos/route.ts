@@ -4,36 +4,9 @@ import { createClientFolder, syncDadosGeraisDoc } from "@/lib/google";
 import { montarDadosGeraisTables } from "@/lib/dados-gerais";
 import { normalizeAssistidoInput, type AssistidoInput } from "@/lib/validation";
 import { generateNoCpfId, isGeneratedNoCpf } from "@/lib/utils";
+import { readRequestBody } from "@/lib/request-body";
 
 export const runtime = "nodejs";
-
-async function readJsonBody<T>(request: Request) {
-  const body = (await request.text()).replace(/^\uFEFF/, "").trim();
-  if (!body) throw new Error("Corpo da requisicao vazio.");
-  try {
-    return JSON.parse(body) as T;
-  } catch (error) {
-    const fallback = parseLooseObjectBody(body);
-    if (fallback) return fallback as T;
-    const prefixCodes = Array.from(body.slice(0, 8)).map((char) => char.charCodeAt(0)).join(",");
-    const message = error instanceof Error ? error.message : "JSON invalido.";
-    throw new Error(`${message} Prefixo recebido: ${prefixCodes}`);
-  }
-}
-
-function parseLooseObjectBody(body: string) {
-  if (!body.startsWith("{") || !body.endsWith("}")) return null;
-
-  try {
-    const normalized = body
-      .replace(/([{,])\s*([A-Za-z_][A-Za-z0-9_]*)\s*:/g, '$1"$2":')
-      .replace(/:\s*undefined\s*([,}])/g, ":null$1")
-      .replace(/:\s*'([^']*)'/g, (_, value) => `:${JSON.stringify(value)}`);
-    return JSON.parse(normalized);
-  } catch {
-    return null;
-  }
-}
 
 export async function GET() {
   try {
@@ -51,7 +24,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const payload = await readJsonBody<AssistidoInput>(request);
+    const payload = await readRequestBody<AssistidoInput>(request);
     const data = normalizeAssistidoInput(payload);
     while (isGeneratedNoCpf(data.cpf) && await prisma.assistido.findUnique({ where: { cpf: data.cpf } })) {
       data.cpf = generateNoCpfId();
