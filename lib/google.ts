@@ -98,7 +98,7 @@ export async function saveGoogleOAuthCode(code: string) {
 function getGoogleAuth() {
   const oauthClient = getOAuthClient();
   const oauthConfig = getOAuthConfig();
-  if (oauthClient && oauthConfig && existsSync(oauthConfig.tokenPath)) {
+  if (oauthClient && oauthConfig && (process.env.GOOGLE_OAUTH_TOKEN_JSON || existsSync(oauthConfig.tokenPath))) {
     return oauthClient;
   }
 
