@@ -1,0 +1,78 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Assistido {
+  cpf                               String        @id
+  nome_completo                     String
+  rg                                String?
+  data_nascimento                   DateTime?
+  nacionalidade                     String?
+  estado_civil                      String?
+  profissao                         String?
+  telefone_whatsapp                 String?
+  email                             String?
+  cep                               String?
+  logradouro                        String?
+  numero                            String?
+  complemento                       String?
+  bairro                            String?
+  municipio                         String?
+  estado                            String?
+  endereco_completo                 String?
+  indicacao                         String?
+  observacoes                       String?
+  menor                             Boolean       @default(false)
+  representante_legal_nome          String?
+  representante_legal_parentesco    String?
+  representante_legal_nacionalidade String?
+  representante_legal_estado_civil  String?
+  representante_legal_profissao     String?
+  representante_legal_rg            String?
+  representante_legal_cpf           String?
+  representante_legal_email         String?
+  representante_legal_telefone      String?
+  advogado_adicional_nome           String?
+  advogado_adicional_oab            String?
+  advogado_adicional_uf             String?
+  data_cadastro                     DateTime      @default(now())
+  pasta_drive_id                    String?
+  pasta_drive_url                   String?
+  dados_gerais_id                   String?
+  dados_gerais_url                  String?
+  created_at                        DateTime      @default(now())
+  atendimentos                      Atendimento[]
+
+  @@map("assistidos")
+}
+
+model Atendimento {
+  id               Int       @id @default(autoincrement())
+  cpf_assistido    String
+  data_atendimento DateTime  @default(now())
+  numero_processo  String?
+  relato           String
+  observacoes      String?
+  created_at       DateTime  @default(now())
+  assistido        Assistido @relation(fields: [cpf_assistido], references: [cpf], onDelete: Cascade)
+
+  @@index([cpf_assistido])
+  @@map("atendimentos")
+}
+
+model UsuarioAutorizado {
+  id                  Int      @id @default(autoincrement())
+  email               String   @unique
+  nome                String?
+  role                String   @default("user")
+  ativo               Boolean  @default(true)
+  drive_permission_id String?
+  created_at          DateTime @default(now())
+
+  @@map("usuarios_autorizados")
+}

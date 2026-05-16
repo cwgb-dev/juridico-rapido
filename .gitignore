@@ -1,0 +1,16 @@
+node_modules
+.next
+.env
+.env*.local
+.env.production
+*.db
+*.db-journal
+prisma/dev.db
+prisma/backup-*
+.google-oauth-token.json
+google-oauth-client.json
+backups/
+server.out.log
+server.err.log
+*.tsbuildinfo
+.tmp-*/
