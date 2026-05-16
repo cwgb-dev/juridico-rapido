@@ -17,10 +17,16 @@ function parseLooseObjectBody(body: string) {
   if (!body.startsWith("{") || !body.endsWith("}")) return null;
 
   try {
-    const normalized = body
+    let normalized = body
       .replace(/([{,])\s*([A-Za-z_][A-Za-z0-9_]*)\s*:/g, '$1"$2":')
       .replace(/:\s*undefined\s*([,}])/g, ":null$1")
       .replace(/:\s*'([^']*)'/g, (_, value) => `:${JSON.stringify(value)}`);
+
+    normalized = normalized.replace(
+      /:\s*([^"{\[\]\d\-,}\s][^,}]*)\s*([,}])/g,
+      (_, value, end) => `:${JSON.stringify(String(value).trim())}${end}`
+    );
+
     return JSON.parse(normalized);
   } catch {
     return null;
