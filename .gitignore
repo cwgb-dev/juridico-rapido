@@ -1,5 +1,6 @@
 node_modules
 .next
+.vercel
 .env
 .env*.local
 .env.production
@@ -15,3 +16,5 @@ server.out.log
 server.err.log
 *.tsbuildinfo
 .tmp-*/
+
+.vercel
