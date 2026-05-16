@@ -783,7 +783,7 @@ function pushLegalRepresentativeNameBold(
   if (!outorganteLine) return;
 
   const representativeMatch = outorganteLine.text.match(
-    /(?:genitor\(a\)\/respons[aá]vel legal|genitora|genitor|respons[aá]vel legal)\s+([^,]+)/i
+    /(?:genitor\(a\)\/respons[aá]vel legal|genitor\(a\)|genitora|genitor|respons[aá]vel legal)\s+([^,]+)/i
   );
   const representativeName = representativeMatch?.[1]?.trim();
   if (!representativeName) return;
