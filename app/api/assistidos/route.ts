@@ -7,6 +7,12 @@ import { generateNoCpfId, isGeneratedNoCpf } from "@/lib/utils";
 
 export const runtime = "nodejs";
 
+async function readJsonBody<T>(request: Request) {
+  const body = (await request.text()).replace(/^\uFEFF/, "").trim();
+  if (!body) throw new Error("Corpo da requisicao vazio.");
+  return JSON.parse(body) as T;
+}
+
 export async function GET() {
   try {
     const assistidos = await prisma.assistido.findMany({
@@ -23,7 +29,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const payload = (await request.json()) as AssistidoInput;
+    const payload = await readJsonBody<AssistidoInput>(request);
     const data = normalizeAssistidoInput(payload);
     while (isGeneratedNoCpf(data.cpf) && await prisma.assistido.findUnique({ where: { cpf: data.cpf } })) {
       data.cpf = generateNoCpfId();

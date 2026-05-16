@@ -12,6 +12,7 @@ prisma/backup-*
 google-oauth-client.json
 backups/
 VERCEL-ENV-VALORES-SECRETOS.txt
+online-test-payload.json
 server.out.log
 server.err.log
 *.tsbuildinfo
