@@ -630,7 +630,7 @@ export function CadastroAssistidoForm() {
             </Button>
             <Button type="button" variant="outline" onClick={() => exportRelatorio("atendimentos")}>
               <Download className="h-4 w-4" />
-              Demandas CSV
+              Atendimentos CSV
             </Button>
           </div>
 
@@ -640,30 +640,30 @@ export function CadastroAssistidoForm() {
             <div className="grid gap-5">
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <Metric label="Assistidos" value={relatorio.resumo.assistidos} />
-                <Metric label="Demandas" value={relatorio.resumo.atendimentos} />
+                <Metric label="Atendimentos" value={relatorio.resumo.atendimentos} />
                 <Metric label="Menores" value={relatorio.resumo.menores} />
                 <Metric label="Sem CPF" value={relatorio.resumo.semCpf} />
                 <Metric label="Com CPF" value={relatorio.resumo.comCpf} />
                 <Metric label="Cadastros no mes" value={relatorio.resumo.cadastrosNoMes} />
-                <Metric label="Demandas no mes" value={relatorio.resumo.atendimentosNoMes} />
+                <Metric label="Atendimentos no mes" value={relatorio.resumo.atendimentosNoMes} />
               </div>
 
               <div className="grid gap-4 lg:grid-cols-3">
                 <ReportList title="Indicacoes" items={relatorio.indicacoes.slice(0, 8)} />
                 <ReportList title="Cadastros por mes" items={relatorio.cadastrosPorMes.slice(0, 8)} />
-                <ReportList title="Demandas por mes" items={relatorio.atendimentosPorMes.slice(0, 8)} />
+                <ReportList title="Atendimentos por mes" items={relatorio.atendimentosPorMes.slice(0, 8)} />
               </div>
 
               <div className="grid gap-4 lg:grid-cols-2">
                 <div className="grid gap-2">
-                  <h3 className="text-base font-semibold">Ultimas demandas</h3>
+                  <h3 className="text-base font-semibold">Ultimos atendimentos</h3>
                   {relatorio.ultimosAtendimentos.length ? relatorio.ultimosAtendimentos.map((atendimento) => (
                     <div key={atendimento.id} className="grid gap-1 rounded-md border border-border bg-white p-3">
                       <p className="font-medium">{atendimento.assistido}</p>
                       <p className="text-sm text-muted-foreground">{[atendimento.data, atendimento.numero_processo].filter(Boolean).join(" · ")}</p>
                       <p className="text-sm text-muted-foreground">{atendimento.relato}</p>
                     </div>
-                  )) : <p className="rounded-md border border-border bg-white p-3 text-sm text-muted-foreground">Nenhuma demanda no periodo.</p>}
+                  )) : <p className="rounded-md border border-border bg-white p-3 text-sm text-muted-foreground">Nenhum atendimento no periodo.</p>}
                 </div>
 
                 <div className="grid gap-2">
@@ -672,7 +672,7 @@ export function CadastroAssistidoForm() {
                     <div key={assistido.cpf} className="grid gap-1 rounded-md border border-border bg-white p-3">
                       <p className="font-medium">{assistido.nome}</p>
                       <p className="text-sm text-muted-foreground">
-                        {[assistido.data, assistido.menor ? "Menor" : "Maior", assistido.indicacao, `${assistido.atendimentos} demanda(s)`].filter(Boolean).join(" · ")}
+                        {[assistido.data, assistido.menor ? "Menor" : "Maior", assistido.indicacao, `${assistido.atendimentos} atendimento(s)`].filter(Boolean).join(" · ")}
                       </p>
                     </div>
                   )) : <p className="rounded-md border border-border bg-white p-3 text-sm text-muted-foreground">Nenhum cadastro no periodo.</p>}
@@ -811,7 +811,7 @@ export function CadastroAssistidoForm() {
               </Button>
               <Button type="button" variant="outline" size="sm" onClick={() => openDemand(selected)}>
                 <FileText className="h-4 w-4" />
-                Demandas
+                Atendimentos
               </Button>
               <Button
                 type="button"
@@ -864,7 +864,7 @@ export function CadastroAssistidoForm() {
           <form onSubmit={handleSaveDemand} className="grid gap-5">
             <div className="grid gap-3 rounded-md border border-border bg-white p-3 sm:grid-cols-[1fr_auto] sm:items-center">
               <div>
-                <p className="text-sm text-muted-foreground">Demandas de</p>
+                <p className="text-sm text-muted-foreground">Atendimentos de</p>
                 <p className="font-semibold">{selected.nome_completo}</p>
                 <p className="text-sm text-muted-foreground">{selected.telefone_whatsapp || "Telefone nao informado"}</p>
               </div>
@@ -882,7 +882,7 @@ export function CadastroAssistidoForm() {
                 <Input id="numero_processo" value={demand.numero_processo} onChange={(event) => updateDemand("numero_processo", event.target.value)} />
               </Field>
 
-              <Field label="Relato da demanda" htmlFor="relato" wide>
+              <Field label="Relato do atendimento" htmlFor="relato" wide>
                 <Textarea id="relato" value={demand.relato} onChange={(event) => updateDemand("relato", event.target.value)} required />
               </Field>
 
@@ -902,7 +902,7 @@ export function CadastroAssistidoForm() {
           </form>
         ) : (
           <div className="grid gap-3 rounded-md border border-border bg-white p-4">
-            <p className="text-sm text-muted-foreground">Selecione um assistido na aba Assistidos para registrar uma demanda.</p>
+            <p className="text-sm text-muted-foreground">Selecione um assistido na aba Assistidos para registrar um atendimento.</p>
             <Button type="button" variant="outline" onClick={() => setTab("assistidos")} className="w-fit">Ir para assistidos</Button>
           </div>
         )

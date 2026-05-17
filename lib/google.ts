@@ -286,7 +286,7 @@ export async function createClientFolder(nome: string, cpf: string): Promise<Fol
 
   const rootId = await createFolder(rootName, assistidosRootId);
   const documentosFolderId = await createFolder("01 - Documentos", rootId);
-  await createFolder("02 - Demandas", rootId);
+  await createFolder("02 - Atendimentos", rootId);
   await createFolder("03 - Minutas", rootId);
 
   return {

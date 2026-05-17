@@ -30,7 +30,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "CPF é obrigatório." }, { status: 400 });
     }
     if (payload.registrar_atendimento !== false && !payload.relato?.trim()) {
-      return NextResponse.json({ error: "Relato da demanda é obrigatório." }, { status: 400 });
+      return NextResponse.json({ error: "Relato do atendimento é obrigatório." }, { status: 400 });
     }
     if (!tipos.length) {
       return NextResponse.json({ error: "Selecione ao menos um documento." }, { status: 400 });

@@ -258,7 +258,7 @@ export function criarTextoDadosGerais(a: AssistidoDocumentoData & {
   return `DADOS GERAIS
 IDENTIFICAÇÃO: ${identificacao}.
 ENDEREÇO: ${endereco}.
-ATENDIMENTO DO DIA: O presente relatório reúne os dados gerais coletados no cadastro inicial do assistido, para fins de organização interna do atendimento jurídico, triagem documental e posterior vinculação às demandas apresentadas.
+ATENDIMENTO DO DIA: O presente relatório reúne os dados gerais coletados no cadastro inicial do assistido, para fins de organização interna do atendimento jurídico, triagem documental e posterior vinculação aos atendimentos realizados.
 INDICAÇÃO: ${texto(a.indicacao)}.
 OBSERVAÇÕES: ${texto(a.observacoes)}.
 ${localData()}.`;

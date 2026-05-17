@@ -28,7 +28,7 @@ export async function createLocalClientFolder(nome: string, cpf: string): Promis
   const folderName = `${sanitizePathPart(nome).toUpperCase()} - ${sanitizePathPart(folderCpfLabel(cpf))}`;
   const clientFolder = path.join(root, folderName);
   const documentosFolder = path.join(clientFolder, "01 - Documentos");
-  const demandasFolder = path.join(clientFolder, "02 - Demandas");
+  const demandasFolder = path.join(clientFolder, "02 - Atendimentos");
   const minutasFolder = path.join(clientFolder, "03 - Minutas");
 
   await mkdir(documentosFolder, { recursive: true });
