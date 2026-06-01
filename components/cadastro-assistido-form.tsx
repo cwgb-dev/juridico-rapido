@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
-import { BarChart3, Download, ExternalLink, FileText, FolderOpen, Loader2, MessageCircle, Pencil, Plus, Save, Search, Trash2 } from "lucide-react";
+import { BarChart3, Download, ExternalLink, FileText, FolderOpen, Loader2, MessageCircle, Pencil, Plus, Save, Search, Sparkles, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -160,10 +160,13 @@ export function CadastroAssistidoForm() {
   const [saving, setSaving] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [quickGenerating, setQuickGenerating] = useState<string | null>(null);
+  const [aiGeneratingCpf, setAiGeneratingCpf] = useState<string | null>(null);
   const [deletingCpf, setDeletingCpf] = useState<string | null>(null);
   const [cepLoading, setCepLoading] = useState(false);
   const [lawyerLookupLoading, setLawyerLookupLoading] = useState(false);
+  const [lawyerSaveLoading, setLawyerSaveLoading] = useState(false);
   const [lawyerLookupStatus, setLawyerLookupStatus] = useState("");
+  const [cnaLookupUrl, setCnaLookupUrl] = useState("");
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [dadosGeraisUrl, setDadosGeraisUrl] = useState("");
@@ -263,6 +266,7 @@ export function CadastroAssistidoForm() {
     setEditingCpf(null);
     setForm(initialForm);
     setLawyerLookupStatus("");
+    setCnaLookupUrl("");
     resetFeedback();
     setTab("cadastro");
   }
@@ -271,6 +275,7 @@ export function CadastroAssistidoForm() {
     setEditingCpf(assistido.cpf);
     setForm(formFromAssistido(assistido));
     setLawyerLookupStatus("");
+    setCnaLookupUrl("");
     resetFeedback();
     setTab("cadastro");
   }
@@ -279,6 +284,7 @@ export function CadastroAssistidoForm() {
     setEditingCpf(null);
     setForm(initialForm);
     setLawyerLookupStatus("");
+    setCnaLookupUrl("");
     resetFeedback();
     setTab("assistidos");
   }
@@ -321,12 +327,16 @@ export function CadastroAssistidoForm() {
 
     setLawyerLookupLoading(true);
     setLawyerLookupStatus("");
+    setCnaLookupUrl("");
     setError("");
 
     try {
       const response = await fetch(`/api/advogados/lookup?uf=${form.advogado_adicional_uf}&oab=${oab}`);
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Nao foi possivel localizar o advogado.");
+      if (!response.ok) {
+        if (data.cna_url) setCnaLookupUrl(data.cna_url);
+        throw new Error(data.error || "Nao foi possivel localizar o advogado.");
+      }
 
       setForm((current) => ({
         ...current,
@@ -334,11 +344,67 @@ export function CadastroAssistidoForm() {
         advogado_adicional_nome: data.lawyer.nome_exibicao || data.lawyer.nome
       }));
       setLawyerLookupStatus(`Advogado encontrado: ${data.lawyer.nome_exibicao || data.lawyer.nome}.`);
+      setCnaLookupUrl("");
     } catch (err) {
       setForm((current) => ({ ...current, advogado_adicional_nome: "" }));
       setLawyerLookupStatus(err instanceof Error ? err.message : "Erro ao buscar advogado.");
     } finally {
       setLawyerLookupLoading(false);
+    }
+  }
+
+  function handleOpenCnaLookup() {
+    const uf = form.advogado_adicional_uf.trim().toUpperCase();
+    const oab = onlyDigits(form.advogado_adicional_oab);
+    const lookupText = [uf, oab].filter(Boolean).join(" ");
+
+    if (lookupText && navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(lookupText).catch(() => undefined);
+    }
+
+    setLawyerLookupStatus(
+      lookupText
+        ? `CNA aberto. Consulta copiada: ${lookupText}.`
+        : "CNA aberto para conferencia manual."
+    );
+    window.open("https://cna.oab.org.br/", "_blank", "noopener,noreferrer");
+  }
+
+  async function handleSaveLawyer() {
+    const nome = form.advogado_adicional_nome.trim();
+    const uf = form.advogado_adicional_uf.trim().toUpperCase();
+    const oab = onlyDigits(form.advogado_adicional_oab);
+
+    if (!nome || !uf || !oab) {
+      setLawyerLookupStatus("Informe nome, UF e OAB para salvar o advogado na base.");
+      return;
+    }
+
+    setLawyerSaveLoading(true);
+    setLawyerLookupStatus("");
+    setError("");
+
+    try {
+      const response = await fetch("/api/advogados", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nome, uf, oab })
+      });
+      const data = await readJsonResponse(response);
+      if (!response.ok) throw new Error(data.error || "Nao foi possivel salvar o advogado.");
+
+      setForm((current) => ({
+        ...current,
+        advogado_adicional_nome: data.lawyer.nome_exibicao || nome,
+        advogado_adicional_uf: data.lawyer.uf || uf,
+        advogado_adicional_oab: data.lawyer.oab || oab
+      }));
+      setCnaLookupUrl("");
+      setLawyerLookupStatus(`Advogado salvo na base local: ${data.lawyer.nome_exibicao || nome}.`);
+    } catch (err) {
+      setLawyerLookupStatus(err instanceof Error ? err.message : "Erro ao salvar advogado.");
+    } finally {
+      setLawyerSaveLoading(false);
     }
   }
 
@@ -348,6 +414,7 @@ export function CadastroAssistidoForm() {
     resetFeedback();
     setDadosGeraisUrl("");
     setLawyerLookupStatus("");
+    setCnaLookupUrl("");
 
     const reportWindow = editingCpf ? null : window.open("", "_blank");
 
@@ -443,11 +510,38 @@ export function CadastroAssistidoForm() {
 
       const firstDoc = data.documentos?.[0]?.documentUrl;
       if (firstDoc && firstWindow) firstWindow.location.href = firstDoc;
-      setMessage("Documento gerado na pasta do assistido.");
+      setMessage("Documento gerado na pasta de minutas do assistido.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao gerar documento.");
     } finally {
       setQuickGenerating(null);
+    }
+  }
+
+  async function generateCaseAnalysis(assistido: Assistido) {
+    setAiGeneratingCpf(assistido.cpf);
+    resetFeedback();
+    const reportWindow = window.open("", "_blank");
+
+    try {
+      const response = await fetch("/api/ia/analisar-caso", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cpf: assistido.cpf })
+      });
+      const data = await readJsonResponse(response);
+      if (!response.ok) {
+        reportWindow?.close();
+        throw new Error(data.error || "Nao foi possivel gerar a analise IA.");
+      }
+
+      const reportUrl = data.relatorio?.documentUrl;
+      if (reportUrl && reportWindow) reportWindow.location.href = reportUrl;
+      setMessage(`Analise IA gerada. Materia: ${data.materia || "nao identificada"}. Medida sugerida: ${data.medida_sugerida || "nao identificada"}.`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao gerar analise IA.");
+    } finally {
+      setAiGeneratingCpf(null);
     }
   }
 
@@ -815,6 +909,16 @@ export function CadastroAssistidoForm() {
               </Button>
               <Button
                 type="button"
+                variant="outline"
+                size="sm"
+                disabled={aiGeneratingCpf === selected.cpf}
+                onClick={() => generateCaseAnalysis(selected)}
+              >
+                {aiGeneratingCpf === selected.cpf ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                Analise IA
+              </Button>
+              <Button
+                type="button"
                 variant="destructive"
                 size="sm"
                 disabled={deletingCpf === selected.cpf}
@@ -847,8 +951,12 @@ export function CadastroAssistidoForm() {
             handleCep={handleCep}
             cepLoading={cepLoading}
             lawyerLookupLoading={lawyerLookupLoading}
+            lawyerSaveLoading={lawyerSaveLoading}
             lawyerLookupStatus={lawyerLookupStatus}
+            cnaLookupUrl={cnaLookupUrl}
             onLawyerLookup={handleLawyerLookup}
+            onOpenCnaLookup={handleOpenCnaLookup}
+            onSaveLawyer={handleSaveLawyer}
             isEditing={Boolean(editingCpf)}
           />
           <Status error={error} message={message} />
@@ -917,8 +1025,12 @@ function CadastroFields({
   handleCep,
   cepLoading,
   lawyerLookupLoading,
+  lawyerSaveLoading,
   lawyerLookupStatus,
+  cnaLookupUrl,
   onLawyerLookup,
+  onOpenCnaLookup,
+  onSaveLawyer,
   isEditing
 }: {
   form: FormState;
@@ -926,8 +1038,12 @@ function CadastroFields({
   handleCep: (value: string) => void;
   cepLoading: boolean;
   lawyerLookupLoading: boolean;
+  lawyerSaveLoading: boolean;
   lawyerLookupStatus: string;
+  cnaLookupUrl: string;
   onLawyerLookup: () => void;
+  onOpenCnaLookup: () => void;
+  onSaveLawyer: () => void;
   isEditing: boolean;
 }) {
   return (
@@ -1025,6 +1141,20 @@ function CadastroFields({
               <Input id="advogado_adicional_nome" value={form.advogado_adicional_nome} onChange={(event) => update("advogado_adicional_nome", event.target.value)} placeholder="Nome do advogado adicional" />
             </Field>
             {lawyerLookupStatus ? <p className="text-sm text-muted-foreground sm:col-span-3">{lawyerLookupStatus}</p> : null}
+            <div className="flex flex-col gap-2 sm:col-span-3 sm:flex-row">
+              {cnaLookupUrl || form.advogado_adicional_oab ? (
+                <Button type="button" variant="outline" onClick={onOpenCnaLookup} className="w-full sm:w-fit">
+                  <ExternalLink className="h-4 w-4" />
+                  Conferir no CNA
+                </Button>
+              ) : null}
+              {form.advogado_adicional_oab && form.advogado_adicional_nome ? (
+                <Button type="button" variant="outline" onClick={onSaveLawyer} disabled={lawyerSaveLoading} className="w-full sm:w-fit">
+                  {lawyerSaveLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  Salvar advogado na base
+                </Button>
+              ) : null}
+            </div>
           </div>
         ) : null}
       </div>

@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && next build",
-    "build:prod": "prisma generate --schema=prisma/postgres/schema.prisma && next build",
+    "build:prod": "node scripts/deploy-db-if-postgres.mjs && prisma generate --schema=prisma/postgres/schema.prisma && next build",
     "vercel-build": "npm run build:prod",
     "start": "next start",
     "start:prod": "node .next/standalone/server.js",
@@ -14,6 +14,7 @@
     "db:deploy": "prisma migrate deploy --schema=prisma/postgres/schema.prisma",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
+    "advogado:add": "node scripts/adicionar-advogado.mjs",
     "prisma:studio": "prisma studio"
   },
   "dependencies": {

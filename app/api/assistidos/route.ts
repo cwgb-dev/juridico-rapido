@@ -46,7 +46,7 @@ export async function POST(request: Request) {
 
     const dadosGerais = await syncDadosGeraisDoc({
       title: `Dados Gerais - ${assistido.nome_completo}`,
-      folderId: folder.documentos_folder_id,
+      folderId: folder.pasta_drive_id,
       tables: montarDadosGeraisTables(assistido, [])
     });
 

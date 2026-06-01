@@ -81,3 +81,19 @@ Na aba Demanda, ao marcar os documentos e clicar em `Gerar documentos`, a API:
 - `GET /api/atendimentos?cpf=00000000000`
 - `POST /api/atendimentos`
 - `POST /api/documentos/gerar`
+
+## Cadastro local de advogados
+
+A busca de advogado usa a base local em `data/advogados.json`. O CNA oficial fica em `https://cna.oab.org.br/`; ele pode ser conferido manualmente, mas nao ha uma API publica estavel no projeto para consulta automatica direta.
+
+Para adicionar um advogado:
+
+```bash
+npm run advogado:add -- --nome="Nome Completo" --uf=RR --oab=1234
+```
+
+Tambem e possivel informar e-mail e telefone:
+
+```bash
+npm run advogado:add -- --nome="Nome Completo" --uf=RR --oab=1234 --email=nome@email.com --telefone="(95) 99999-9999"
+```

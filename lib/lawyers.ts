@@ -1,4 +1,7 @@
-﻿import { onlyDigits } from "@/lib/utils";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { prisma } from "@/lib/prisma";
+import { onlyDigits } from "@/lib/utils";
 
 export type LawyerRecord = {
   nome: string;
@@ -7,28 +10,11 @@ export type LawyerRecord = {
   oab: string;
   email?: string;
   telefone?: string;
+  principal?: boolean;
 };
 
-const OFFICE_ADDRESS = "Rua Ajuricaba, nº 1633, bairro Centro, Boa Vista/RR, CEP 69301-070";
-
-const PRIMARY_LAWYER: LawyerRecord = {
-  nome: "CHRISTIAN WENDEL GONÇALVES BENTES",
-  nome_exibicao: "Christian Wendel Gonçalves Bentes",
-  uf: "RR",
-  oab: "3.003",
-  email: "cwgb.adv@gmail.com",
-  telefone: "(95) 99155-1684"
-};
-
-const LAWYER_REGISTRY: LawyerRecord[] = [
-  PRIMARY_LAWYER,
-  {
-    nome: "GABRIEL GILEME DA SILVA SANTOS",
-    nome_exibicao: "Gabriel Gileme da Silva Santos",
-    uf: "RR",
-    oab: "2340"
-  }
-];
+const OFFICE_ADDRESS = "Rua Ajuricaba, n. 1633, bairro Centro, Boa Vista/RR, CEP 69301-070";
+const LAWYERS_PATH = join(process.cwd(), "data", "advogados.json");
 
 function normalizeUf(value?: string | null) {
   return (value || "").trim().toUpperCase();
@@ -38,25 +24,61 @@ function normalizeOab(value?: string | null) {
   return onlyDigits(value || "");
 }
 
-export function getPrimaryLawyer() {
-  return PRIMARY_LAWYER;
+function loadLawyers() {
+  const raw = readFileSync(LAWYERS_PATH, "utf8");
+  const lawyersData = JSON.parse(raw) as LawyerRecord[];
+
+  return lawyersData.map((lawyer) => ({
+    ...lawyer,
+    nome: lawyer.nome.trim().toUpperCase(),
+    nome_exibicao: lawyer.nome_exibicao.trim(),
+    uf: normalizeUf(lawyer.uf),
+    oab: normalizeOab(lawyer.oab)
+  }));
 }
 
-export function findLawyerByOab(params: { uf?: string | null; oab?: string | null }) {
+export function getPrimaryLawyer() {
+  const registry = loadLawyers();
+  return registry.find((lawyer) => lawyer.principal) || registry[0];
+}
+
+export function getLawyers() {
+  return loadLawyers();
+}
+
+export async function findLawyerByOab(params: { uf?: string | null; oab?: string | null }) {
   const uf = normalizeUf(params.uf);
   const oab = normalizeOab(params.oab);
 
   if (!uf || !oab) return null;
 
+  const savedLawyer = await prisma.advogado.findUnique({
+    where: {
+      uf_oab: { uf, oab }
+    }
+  });
+
+  if (savedLawyer) {
+    return {
+      nome: savedLawyer.nome,
+      nome_exibicao: savedLawyer.nome_exibicao,
+      uf: savedLawyer.uf,
+      oab: savedLawyer.oab,
+      email: savedLawyer.email || undefined,
+      telefone: savedLawyer.telefone || undefined,
+      principal: savedLawyer.principal
+    };
+  }
+
   return (
-    LAWYER_REGISTRY.find((lawyer) => normalizeUf(lawyer.uf) === uf && normalizeOab(lawyer.oab) === oab) ||
+    loadLawyers().find((lawyer) => normalizeUf(lawyer.uf) === uf && normalizeOab(lawyer.oab) === oab) ||
     null
   );
 }
 
 function buildLawyerCore(lawyer: LawyerRecord) {
   const parts = [
-    `${lawyer.nome}, advogado, inscrito na OAB/${lawyer.uf} nº ${lawyer.oab}`,
+    `${lawyer.nome}, advogado, inscrito na OAB/${lawyer.uf} n. ${lawyer.oab}`,
     lawyer.email ? `e-mail: ${lawyer.email}` : "",
     lawyer.telefone ? `telefone: ${lawyer.telefone}` : ""
   ].filter(Boolean);
@@ -69,9 +91,10 @@ export function buildOutorgadosText(additionalLawyer?: {
   uf?: string | null;
   oab?: string | null;
 }) {
-  const lawyers = [buildLawyerCore(PRIMARY_LAWYER)];
+  const primaryLawyer = getPrimaryLawyer();
+  const lawyers = [buildLawyerCore(primaryLawyer)];
 
-  if (additionalLawyer?.nome?.trim() && normalizeOab(additionalLawyer.oab) !== normalizeOab(PRIMARY_LAWYER.oab)) {
+  if (additionalLawyer?.nome?.trim() && normalizeOab(additionalLawyer.oab) !== normalizeOab(primaryLawyer.oab)) {
     lawyers.push(
       buildLawyerCore({
         nome: additionalLawyer.nome.trim().toUpperCase(),
@@ -83,8 +106,8 @@ export function buildOutorgadosText(additionalLawyer?: {
   }
 
   if (lawyers.length > 1) {
-    return `${lawyers.join(", e ")}, ambos com escritório profissional na ${OFFICE_ADDRESS}`;
+    return `${lawyers.join(", e ")}, ambos com escritorio profissional na ${OFFICE_ADDRESS}`;
   }
 
-  return `${lawyers[0]}, com escritório profissional na ${OFFICE_ADDRESS}`;
+  return `${lawyers[0]}, com escritorio profissional na ${OFFICE_ADDRESS}`;
 }

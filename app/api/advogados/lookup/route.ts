@@ -12,11 +12,11 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Informe a OAB para buscar o advogado." }, { status: 400 });
   }
 
-  const lawyer = findLawyerByOab({ uf, oab });
+  const lawyer = await findLawyerByOab({ uf, oab });
   if (!lawyer) {
     return NextResponse.json(
       {
-        error: "Advogado nao encontrado na base local. A consulta automatica ao CNA oficial exige validacao por reCAPTCHA.",
+        error: "Advogado nao encontrado na base local. Confira no CNA oficial e, se estiver correto, digite o nome manualmente ou cadastre na base local.",
         cna_url: "https://cna.oab.org.br/"
       },
       { status: 404 }

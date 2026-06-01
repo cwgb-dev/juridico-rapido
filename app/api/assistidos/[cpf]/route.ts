@@ -4,7 +4,7 @@ import path from "node:path";
 import { prisma } from "@/lib/prisma";
 import { onlyDigits } from "@/lib/utils";
 import { normalizeAssistidoInput, type AssistidoInput } from "@/lib/validation";
-import { deleteDriveFolder, getDocumentosFolderId, syncDadosGeraisDoc } from "@/lib/google";
+import { deleteDriveFolder, syncDadosGeraisDoc } from "@/lib/google";
 import { montarDadosGeraisTables } from "@/lib/dados-gerais";
 import { readRequestBody } from "@/lib/request-body";
 
@@ -55,10 +55,9 @@ export async function PUT(request: Request, { params }: Params) {
 
     let dadosGeraisUrl = assistido.dados_gerais_url;
     if (assistido.pasta_drive_id) {
-      const documentosFolderId = await getDocumentosFolderId(assistido.pasta_drive_id);
       const dadosGerais = await syncDadosGeraisDoc({
         title: `Dados Gerais - ${assistido.nome_completo}`,
-        folderId: documentosFolderId,
+        folderId: assistido.pasta_drive_id,
         documentId: assistido.dados_gerais_id,
         tables: montarDadosGeraisTables(assistido, assistido.atendimentos)
       });
