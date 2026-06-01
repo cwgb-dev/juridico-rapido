@@ -9,7 +9,6 @@ type FolderResult = {
   pasta_drive_id: string;
   pasta_drive_url: string;
   documentos_folder_id: string;
-  minutas_folder_id: string;
 };
 
 const driveFolderMimeType = "application/vnd.google-apps.folder";
@@ -159,8 +158,7 @@ async function createFolder(name: string, parentId?: string) {
       mimeType: driveFolderMimeType,
       parents: parentId ? [parentId] : undefined
     },
-    fields: "id, webViewLink",
-    supportsAllDrives: true
+    fields: "id, webViewLink"
   });
 
   if (!response.data.id) {
@@ -186,8 +184,6 @@ async function getOrCreateFolder(name: string, parentId: string) {
       "trashed = false"
     ].join(" and "),
     fields: "files(id, name)",
-    includeItemsFromAllDrives: true,
-    supportsAllDrives: true,
     pageSize: 1
   });
 
@@ -200,14 +196,6 @@ export async function getDocumentosFolderId(clientFolderId: string) {
   return getOrCreateFolder("01 - Documentos", clientFolderId);
 }
 
-export async function getAtendimentosFolderId(clientFolderId: string) {
-  return getOrCreateFolder("02 - Atendimentos", clientFolderId);
-}
-
-export async function getMinutasFolderId(clientFolderId: string) {
-  return getOrCreateFolder("03 - Minutas", clientFolderId);
-}
-
 export async function deleteDriveFolder(folderId?: string | null) {
   if (!folderId || !hasGoogleCredentials()) return false;
   if (folderId.includes(":") || folderId.includes("\\") || folderId.includes("/")) return false;
@@ -216,7 +204,7 @@ export async function deleteDriveFolder(folderId?: string | null) {
   const drive = google.drive({ version: "v3", auth });
 
   try {
-    await drive.files.delete({ fileId: folderId, supportsAllDrives: true });
+    await drive.files.delete({ fileId: folderId });
     return true;
   } catch (error: any) {
     if (error?.code === 404) return false;
@@ -238,7 +226,6 @@ export async function shareJuridicoFolderWithEmail(email?: string | null) {
     const permission = await drive.permissions.create({
       fileId: folderId,
       sendNotificationEmail: false,
-      supportsAllDrives: true,
       requestBody: {
         type: "user",
         role: "writer",
@@ -265,7 +252,7 @@ export async function removeJuridicoFolderAccess(email?: string | null, permissi
   if (!id) return false;
 
   try {
-    await drive.permissions.delete({ fileId: folderId, permissionId: id, supportsAllDrives: true });
+    await drive.permissions.delete({ fileId: folderId, permissionId: id });
     return true;
   } catch (error: any) {
     if (error?.code === 404 || error?.code === 400 || error?.code === 403) return false;
@@ -299,16 +286,13 @@ export async function createClientFolder(nome: string, cpf: string): Promise<Fol
 
   const rootId = await createFolder(rootName, assistidosRootId);
   const documentosFolderId = await createFolder("01 - Documentos", rootId);
-  await createFolder("Manifestações", documentosFolderId);
-  await createFolder("Provas", documentosFolderId);
   await createFolder("02 - Atendimentos", rootId);
-  const minutasFolderId = await createFolder("03 - Minutas", rootId);
+  await createFolder("03 - Minutas", rootId);
 
   return {
     pasta_drive_id: rootId,
     pasta_drive_url: driveUrl(rootId),
-    documentos_folder_id: documentosFolderId,
-    minutas_folder_id: minutasFolderId
+    documentos_folder_id: documentosFolderId
   };
 }
 
@@ -337,8 +321,7 @@ export async function syncDadosGeraisDoc(params: {
         mimeType: googleDocMimeType,
         parents: [params.folderId]
       },
-      fields: "id, webViewLink",
-      supportsAllDrives: true
+      fields: "id, webViewLink"
     });
 
     documentId = created.data.id || "";
@@ -395,8 +378,7 @@ export async function createGoogleDocInFolder(params: {
       mimeType: googleDocMimeType,
       parents: [params.folderId]
     },
-    fields: "id, webViewLink",
-    supportsAllDrives: true
+    fields: "id, webViewLink"
   });
 
   const documentId = created.data.id;

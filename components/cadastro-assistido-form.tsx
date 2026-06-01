@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
-import { BarChart3, Download, ExternalLink, FileText, FolderOpen, Loader2, MessageCircle, Pencil, Plus, Save, Search, Sparkles, Trash2 } from "lucide-react";
+import { BarChart3, Download, ExternalLink, FileText, FolderOpen, Loader2, MessageCircle, Pencil, Plus, Save, Search, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -161,7 +161,6 @@ export function CadastroAssistidoForm() {
   const [saving, setSaving] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [quickGenerating, setQuickGenerating] = useState<string | null>(null);
-  const [aiGeneratingCpf, setAiGeneratingCpf] = useState<string | null>(null);
   const [deletingCpf, setDeletingCpf] = useState<string | null>(null);
   const [cepLoading, setCepLoading] = useState(false);
   const [lawyerLookupLoading, setLawyerLookupLoading] = useState(false);
@@ -526,33 +525,6 @@ export function CadastroAssistidoForm() {
       setError(err instanceof Error ? err.message : "Erro ao gerar documento.");
     } finally {
       setQuickGenerating(null);
-    }
-  }
-
-  async function generateCaseAnalysis(assistido: Assistido) {
-    setAiGeneratingCpf(assistido.cpf);
-    resetFeedback();
-    const reportWindow = window.open("", "_blank");
-
-    try {
-      const response = await fetch("/api/ia/analisar-caso", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cpf: assistido.cpf })
-      });
-      const data = await readJsonResponse(response);
-      if (!response.ok) {
-        reportWindow?.close();
-        throw new Error(data.error || "Nao foi possivel gerar a analise IA.");
-      }
-
-      const reportUrl = data.relatorio?.documentUrl;
-      if (reportUrl && reportWindow) reportWindow.location.href = reportUrl;
-      setMessage(`Analise IA gerada. Materia: ${data.materia || "nao identificada"}. Medida sugerida: ${data.medida_sugerida || "nao identificada"}.`);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao gerar analise IA.");
-    } finally {
-      setAiGeneratingCpf(null);
     }
   }
 
@@ -946,16 +918,6 @@ export function CadastroAssistidoForm() {
               <Button type="button" variant="outline" size="sm" onClick={() => openDemand(selected)}>
                 <FileText className="h-4 w-4" />
                 Atendimentos
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={aiGeneratingCpf === selected.cpf}
-                onClick={() => generateCaseAnalysis(selected)}
-              >
-                {aiGeneratingCpf === selected.cpf ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                Analise IA
               </Button>
               <Button
                 type="button"

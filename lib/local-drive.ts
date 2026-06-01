@@ -6,7 +6,6 @@ export type LocalFolderResult = {
   pasta_drive_id: string;
   pasta_drive_url: string;
   documentos_folder_id: string;
-  minutas_folder_id: string;
 };
 
 function sanitizePathPart(value: string) {
@@ -29,22 +28,17 @@ export async function createLocalClientFolder(nome: string, cpf: string): Promis
   const folderName = `${sanitizePathPart(nome).toUpperCase()} - ${sanitizePathPart(folderCpfLabel(cpf))}`;
   const clientFolder = path.join(root, folderName);
   const documentosFolder = path.join(clientFolder, "01 - Documentos");
-  const manifestacoesFolder = path.join(documentosFolder, "Manifestações");
-  const provasFolder = path.join(documentosFolder, "Provas");
   const demandasFolder = path.join(clientFolder, "02 - Atendimentos");
   const minutasFolder = path.join(clientFolder, "03 - Minutas");
 
   await mkdir(documentosFolder, { recursive: true });
-  await mkdir(manifestacoesFolder, { recursive: true });
-  await mkdir(provasFolder, { recursive: true });
   await mkdir(demandasFolder, { recursive: true });
   await mkdir(minutasFolder, { recursive: true });
 
   return {
     pasta_drive_id: clientFolder,
     pasta_drive_url: clientFolder,
-    documentos_folder_id: documentosFolder,
-    minutas_folder_id: minutasFolder
+    documentos_folder_id: documentosFolder
   };
 }
 
