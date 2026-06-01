@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { createClientFolder, createGoogleDocInFolder, getDocumentosFolderId } from "@/lib/google";
+import { createClientFolder, createGoogleDocInFolder, getMinutasFolderId } from "@/lib/google";
 import { criarTextoDocumento, tituloDocumento, type TipoDocumento } from "@/lib/documentos";
 import { onlyDigits } from "@/lib/utils";
 import { readRequestBody } from "@/lib/request-body";
@@ -45,7 +45,7 @@ export async function POST(request: Request) {
       ? {
           pasta_drive_id: assistido.pasta_drive_id,
           pasta_drive_url: assistido.pasta_drive_url,
-          documentos_folder_id: await getDocumentosFolderId(assistido.pasta_drive_id)
+          minutas_folder_id: await getMinutasFolderId(assistido.pasta_drive_id)
         }
       : await createClientFolder(assistido.nome_completo, assistido.cpf);
     if (!assistido.pasta_drive_id || !assistido.pasta_drive_url) {
@@ -74,7 +74,7 @@ export async function POST(request: Request) {
       const doc = await createGoogleDocInFolder({
         title: tituloDocumento(tipo, assistido.nome_completo),
         content: criarTextoDocumento(tipo, assistido),
-        folderId: folder.documentos_folder_id
+        folderId: folder.minutas_folder_id
       });
       documentos.push({ tipo, ...doc });
     }
