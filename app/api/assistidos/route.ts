@@ -8,10 +8,44 @@ import { readRequestBody } from "@/lib/request-body";
 
 export const runtime = "nodejs";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url);
+    const q = (searchParams.get("q") || "").trim();
+    const limitParam = Number(searchParams.get("limit") || "80");
+    const take = Number.isFinite(limitParam) ? Math.min(Math.max(limitParam, 1), 200) : 80;
+    const isPostgres = (process.env.DATABASE_URL || "").startsWith("postgres");
+
+    const textFilter = (field: string, value: string) =>
+      isPostgres
+        ? ({ [field]: { contains: value, mode: "insensitive" } } as any)
+        : ({ [field]: { contains: value } } as any);
+
+    const digits = q.replace(/\D/g, "");
+    const where = q
+      ? ({
+          OR: [
+            textFilter("nome_completo", q),
+            textFilter("indicacao", q),
+            textFilter("telefone_whatsapp", q),
+            textFilter("email", q),
+            textFilter("advogado_adicional_nome", q),
+            textFilter("observacoes", q),
+            ...(digits
+              ? [
+                  { cpf: { contains: digits } },
+                  { telefone_whatsapp: { contains: digits } },
+                  { advogado_adicional_oab: { contains: digits } }
+                ]
+              : [])
+          ]
+        } as any)
+      : undefined;
+
     const assistidos = await prisma.assistido.findMany({
+      where,
       orderBy: { created_at: "desc" },
+      take,
       include: { atendimentos: { orderBy: { created_at: "desc" } } }
     });
 

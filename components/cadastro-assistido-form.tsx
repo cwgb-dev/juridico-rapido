@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { formatCep, formatCpf, isGeneratedNoCpf, onlyDigits } from "@/lib/utils";
+import { displayCpf, formatCep, formatCpf, isGeneratedNoCpf, onlyDigits } from "@/lib/utils";
 
 type Assistido = {
   cpf: string;
@@ -151,6 +151,7 @@ async function readJsonResponse(response: Response) {
 export function CadastroAssistidoForm() {
   const [tab, setTab] = useState<"assistidos" | "cliente" | "cadastro" | "demanda" | "acessos" | "relatorios">("assistidos");
   const [assistidos, setAssistidos] = useState<Assistido[]>([]);
+  const [assistidoSearch, setAssistidoSearch] = useState("");
   const [usuarios, setUsuarios] = useState<UsuarioAutorizado[]>([]);
   const [selected, setSelected] = useState<Assistido | null>(null);
   const [form, setForm] = useState<FormState>(initialForm);
@@ -180,14 +181,24 @@ export function CadastroAssistidoForm() {
   const [relatorioTo, setRelatorioTo] = useState("");
 
   useEffect(() => {
-    loadAssistidos();
     loadUsuarios();
   }, []);
 
-  async function loadAssistidos() {
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      void loadAssistidos(assistidoSearch);
+    }, 300);
+
+    return () => window.clearTimeout(timeout);
+  }, [assistidoSearch]);
+
+  async function loadAssistidos(search = assistidoSearch) {
     setLoadingList(true);
     try {
-      const response = await fetch("/api/assistidos");
+      const params = new URLSearchParams({ limit: "80" });
+      const query = search.trim();
+      if (query) params.set("q", query);
+      const response = await fetch(`/api/assistidos?${params}`);
       const data = await readJsonResponse(response);
       if (!response.ok) throw new Error(data.error || "Nao foi possivel carregar os assistidos.");
       setAssistidos(data);
@@ -665,6 +676,25 @@ export function CadastroAssistidoForm() {
 
           <Status error={error} message={message} />
 
+          <div className="grid gap-2 rounded-md border border-border bg-white p-3">
+            <Label htmlFor="assistido_search">Buscar cliente</Label>
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="assistido_search"
+                value={assistidoSearch}
+                onChange={(event) => setAssistidoSearch(event.target.value)}
+                placeholder="Nome, CPF, telefone, indicacao, e-mail ou advogado"
+                className="pl-9"
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {assistidoSearch.trim()
+                ? `${assistidos.length} resultado(s) encontrado(s).`
+                : `${assistidos.length} cadastro(s) recente(s) exibido(s).`}
+            </p>
+          </div>
+
           {loadingList ? (
             <p className="text-sm text-muted-foreground">Carregando assistidos...</p>
           ) : assistidos.length ? (
@@ -674,9 +704,17 @@ export function CadastroAssistidoForm() {
                   <button type="button" onClick={() => openCliente(assistido)} className="grid gap-1 text-left">
                     <p className="font-semibold">{assistido.nome_completo}</p>
                     <p className="text-sm text-muted-foreground">
+                      {[
+                        displayCpf(assistido.cpf) ? `CPF: ${displayCpf(assistido.cpf)}` : "Sem CPF",
+                        assistido.telefone_whatsapp ? `Telefone: ${assistido.telefone_whatsapp}` : "Telefone nao informado"
+                      ].join(" · ")}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
                       {assistido.indicacao ? `Indicacao: ${assistido.indicacao}` : "Indicacao nao informada"}
                     </p>
-                    <p className="text-sm text-muted-foreground">{assistido.telefone_whatsapp || "Telefone nao informado"}</p>
+                    {assistido.advogado_adicional_nome ? (
+                      <p className="text-sm text-muted-foreground">Advogado adicional: {assistido.advogado_adicional_nome}</p>
+                    ) : null}
                     {assistido.observacoes ? (
                       <p className="text-sm text-muted-foreground">Observacao: {assistido.observacoes}</p>
                     ) : null}
@@ -691,7 +729,9 @@ export function CadastroAssistidoForm() {
               ))}
             </div>
           ) : (
-            <p className="rounded-md border border-border bg-white p-4 text-sm text-muted-foreground">Nenhum assistido cadastrado.</p>
+            <p className="rounded-md border border-border bg-white p-4 text-sm text-muted-foreground">
+              {assistidoSearch.trim() ? "Nenhum assistido encontrado para esta busca." : "Nenhum assistido cadastrado."}
+            </p>
           )}
         </div>
       ) : null}
