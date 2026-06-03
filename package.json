@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && next build",
-    "build:prod": "node scripts/deploy-db-if-postgres.mjs && prisma generate --schema=prisma/postgres/schema.prisma && next build",
+    "build:prod": "prisma generate --schema=prisma/postgres/schema.prisma && next build",
     "vercel-build": "npm run build:prod",
     "start": "next start",
     "start:prod": "node .next/standalone/server.js",
